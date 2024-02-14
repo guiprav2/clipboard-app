@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Clipboard App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <link rel="stylesheet" href="other/preflight.css">
+    <script src="other/windy.js"></script>
+  </head>
+  <body class="h-screen py-32 sans bg-neutral-100">
+    <script type="module">
+      import App from './components/App.js';
+      import d from './other/dominant.js';
+
+      addEventListener('click', ev => {
+        let href = ev.target.closest('a')?.getAttribute?.('href');
+        if (!href || ev.defaultPrevented) { return }
+        if (href.startsWith('#')) { ev.preventDefault() }
+      });
+
+      document.body.append(d.el(App));
+    </script>
+  </body>
+</html>
