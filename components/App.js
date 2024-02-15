@@ -1,4 +1,5 @@
 import LoadingDialog from './dialogs/LoadingDialog.js';
+import SyncDeviceDialog from './dialogs/SyncDeviceDialog.js';
 import d from '../other/dominant.js';
 import moment from 'https://cdn.skypack.dev/moment';
 import ruploads from '../repositories/UploadRepository.js';
@@ -28,6 +29,10 @@ class App {
   };
 
   deleteFile = x => { this._entries.delete(this.entries.indexOf(x), 1) };
+
+  syncDevice = async () => {
+    await showModal(d.el(SyncDeviceDialog, { url: `https://clipboard.guiprav.com/?id=${this.id}` }));
+  };
 
   render = () => d.html`
     <div class="max-w-5xl mx-auto p-16 rounded-lg shadow-xl bg-neutral-200 text-neutral-700 flex flex-col gap-8 mb-32">
