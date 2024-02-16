@@ -28,7 +28,7 @@ class App {
       if (perm !== 'granted') { return }
       let reg = await navigator.serviceWorker.register('sw.js');
       let sub = await reg.pushManager.subscribe({ userVisibleOnly: true });
-      this.ownPushEndpoint = sub.endpoint;
+      console.log('endpoint:', this.ownPushEndpoint = sub.endpoint);
       if (this._pushEndpoints.toArray().includes(sub.endpoint)) { return }
       this._pushEndpoints.push([sub.endpoint]);
     });
@@ -42,11 +42,12 @@ class App {
     this._entries.unshift([{ name: file.name, url: res.url, cat: new Date().toISOString() }]);
     for (let x of this._pushEndpoints.toArray()) {
       if (x === this.ownPushEndpoint) { continue }
-      await fetch(x, {
+      let res2 = await fetch(x, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: 'File received!', body: file.name, url: res.url }),
       });
+      alert('Fetch: ' + res2.status + ': ' + JSON.stringify(await res2.json()));
     }
   };
 

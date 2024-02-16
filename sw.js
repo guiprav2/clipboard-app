@@ -1,6 +1,7 @@
 self.addEventListener('push', event => {
   const payload = event.data.json();
 
+  console.log('push:', payload);
   event.waitUntil(self.registration.showNotification(payload.title, {
     body: payload.body,
     data: { url: payload.url },
