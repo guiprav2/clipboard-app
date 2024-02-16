@@ -15,9 +15,23 @@ class App {
     if (pid) { history.pushState(null, '', '/') }
     this.doc = new Y.Doc();
     this.wsp = new WebsocketProvider('wss://protohub.guiprav.com/yjs', `clipboard:${this.id}`, this.doc);
-    this.wsp.on('status', ev => console.log('wsp:', ev.status));
+    this.wsp.on('status', ev => { console.log('wsp:', ev.status); this.pushSetup() });
+    this._pushEndpoints = this.doc.getArray('pushEndpoints');
     this._entries = this.doc.getArray('entries');
     this.doc.on('update', () => { this.entries = this._entries.toArray(); d.update() });
+  }
+
+  pushSetup() {
+    if (this.pushSetupDone) { return }
+    this.pushSetupDone = true;
+    Notification.requestPermission().then(async perm => {
+      if (perm !== 'granted') { return }
+      let reg = await navigator.serviceWorker.register('sw.js');
+      let sub = await reg.pushManager.subscribe({ userVisibleOnly: true });
+      this.ownPushEndpoint = sub.endpoint;
+      if (this._pushEndpoints.toArray().includes(sub.endpoint)) { return }
+      this._pushEndpoints.push([sub.endpoint]);
+    });
   }
 
   uploadFile = async () => {
@@ -26,6 +40,14 @@ class App {
     showModal(d.el(LoadingDialog, { promise: res }));
     res = await res;
     this._entries.unshift([{ name: file.name, url: res.url, cat: new Date().toISOString() }]);
+    for (let x of this._pushEndpoints.toArray()) {
+      if (x === this.ownPushEndpoint) { continue }
+      await fetch(x, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'File received!', body: file.name, url: res.url }),
+      });
+    }
   };
 
   deleteFile = x => { this._entries.delete(this.entries.indexOf(x), 1) };
