@@ -44,7 +44,7 @@ class App {
       if (x === this.ownPushEndpoint) { continue }
       let res2 = await fetch(x, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', TTL: 15 },
         body: JSON.stringify({ title: 'File received!', body: file.name, url: res.url }),
       });
       alert('Fetch: ' + res2.status + ': ' + JSON.stringify(await res2.json()));
