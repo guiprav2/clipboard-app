@@ -9,6 +9,8 @@ import { selectFile, showModal } from '../other/util.js';
 
 class App {
   constructor() {
+    this.cid = localStorage.getItem('clipboard.cid') || nanoid();
+    localStorage.setItem('clipboard.cid', this.cid);
     let pid = new URL(location.href).searchParams.get('id');
     this.id = pid || localStorage.getItem('clipboard.id');
     localStorage.setItem('clipboard.id', this.id ??= nanoid() + nanoid());
@@ -16,7 +18,7 @@ class App {
     this.doc = new Y.Doc();
     this.wsp = new WebsocketProvider('wss://protohub.guiprav.com/yjs', `clipboard:${this.id}`, this.doc);
     this.wsp.on('status', ev => { console.log('wsp:', ev.status); this.pushSetup() });
-    this._pushEndpoints = this.doc.getArray('pushEndpoints');
+    this._pushEndpoints = this.doc.getMap('pushEndpoints');
     this._entries = this.doc.getArray('entries');
     this.doc.on('update', () => { this.entries = this._entries.toArray(); d.update() });
   }
@@ -29,8 +31,7 @@ class App {
       let reg = await navigator.serviceWorker.register('sw.js');
       let sub = await reg.pushManager.subscribe({ userVisibleOnly: true });
       console.log('endpoint:', this.ownPushEndpoint = sub.endpoint);
-      if (this._pushEndpoints.toArray().includes(sub.endpoint)) { return }
-      this._pushEndpoints.push([sub.endpoint]);
+      this._pushEndpoints.set(this.cid, this.ownPushEndpoint);
     });
   }
 
@@ -40,12 +41,12 @@ class App {
     showModal(d.el(LoadingDialog, { promise: res }));
     res = await res;
     this._entries.unshift([{ name: file.name, url: res.url, cat: new Date().toISOString() }]);
-    for (let x of this._pushEndpoints.toArray()) {
+    for (let x of this._pushEndpoints.values()) {
       if (x === this.ownPushEndpoint) { continue }
       let res2 = await fetch('https://protohub.guiprav.com/push', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sub: x, body: { title: 'File received!', body: file.name, url: res.url } }),
+        body: JSON.stringify({ sub: { endpoint: x }, body: { title: 'File received!', body: file.name, url: res.url } }),
       });
       alert('Fetch: ' + res2.status + ': ' + JSON.stringify(await res2.json()));
     }
