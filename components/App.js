@@ -7,8 +7,11 @@ import { Y, WebsocketProvider } from '../other/y.bundle.js';
 import { nanoid } from 'https://cdn.skypack.dev/nanoid';
 import { selectFile, showModal } from '../other/util.js';
 
+let vapidPub = 'BL3Zf8KT93hl52obN57b-v4bY9PU_UpWrI8m66hOuWyJpErSIzGhJw1qfSadPG0kZxZCckKxX8_v7OIE09hcFAE';
+
 class App {
   constructor() {
+    window.app = this;
     this.cid = localStorage.getItem('clipboard.cid') || nanoid();
     localStorage.setItem('clipboard.cid', this.cid);
     let pid = new URL(location.href).searchParams.get('id');
@@ -29,9 +32,8 @@ class App {
     Notification.requestPermission().then(async perm => {
       if (perm !== 'granted') { return }
       let reg = await navigator.serviceWorker.register('sw.js');
-      let sub = await reg.pushManager.subscribe({ userVisibleOnly: true });
-      console.log('endpoint:', this.ownPushEndpoint = sub.endpoint);
-      this._pushEndpoints.set(this.cid, this.ownPushEndpoint);
+      let sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidPub });
+      this._pushEndpoints.set(this.cid, JSON.parse(JSON.stringify(sub)));
     });
   }
 
@@ -42,13 +44,12 @@ class App {
     res = await res;
     this._entries.unshift([{ name: file.name, url: res.url, cat: new Date().toISOString() }]);
     for (let x of this._pushEndpoints.values()) {
-      if (x === this.ownPushEndpoint) { continue }
+      if (x.endpoint === this.ownPushEndpoint) { continue }
       let res2 = await fetch('https://protohub.guiprav.com/push', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sub: { endpoint: x }, body: { title: 'File received!', body: file.name, url: res.url } }),
+        body: JSON.stringify({ sub: x, body: { title: 'File received!', body: file.name, url: res.url } }),
       });
-      alert('Fetch: ' + res2.status + ': ' + JSON.stringify(await res2.json()));
     }
   };
 
