@@ -26,8 +26,8 @@ class App {
     this.doc.on('update', () => { this.entries = this._entries.toArray(); d.update() });
   }
 
-  pushSetup() {
-    if (this.pushSetupDone) { return }
+  pushSetup(force) {
+    if (!force && this.pushSetupDone) { return }
     this.pushSetupDone = true;
     Notification.requestPermission().then(async perm => {
       if (perm !== 'granted') { return }
